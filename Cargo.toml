@@ -1,0 +1,9 @@
+[package]
+name = "aoc25"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.100"
+nom = "8.0.0"
+thiserror = "2.0.17"
