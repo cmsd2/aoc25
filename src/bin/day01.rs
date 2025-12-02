@@ -1,13 +1,11 @@
-use std::io::{self};
 use std::fmt::{self};
+use std::io::{self};
+use aoc25::error::AocError;
+use aoc25::result::AocResult;
 
 use nom::{
-    IResult, Parser,
-    branch::alt,
-    bytes::complete::tag,
-    character::complete::digit1,
-    combinator::map_res,
-    sequence::pair,
+    IResult, Parser, branch::alt, bytes::complete::tag, character::complete::digit1,
+    combinator::map_res, sequence::pair,
 };
 use thiserror::Error;
 
@@ -27,28 +25,27 @@ impl From<&str> for Mode {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum AocError {
-    #[error("Parse error: {0}")]
-    ParseError(String),
-
-    #[error("Nom error: {0}")]
-    NomError(String),
-}
-
 #[derive(clap::Parser, Debug, Clone)]
 pub struct Config {
-    #[clap(short, long, default_value = "data/day01/input.txt", help = "Path to input file")]
+    #[clap(
+        short,
+        long,
+        default_value = "data/day01/input.txt",
+        help = "Path to input file"
+    )]
     pub input: String,
 
-    #[clap(short, long, default_value = "after", help = "Mode: 'after' or 'during'")]
+    #[clap(
+        short,
+        long,
+        default_value = "after",
+        help = "Mode: 'after' or 'during'"
+    )]
     pub mode: Mode,
 
     #[clap(short, long, help = "Enable verbose output")]
-    pub verbose: bool
+    pub verbose: bool,
 }
-
-pub type AocResult<R> = std::result::Result<R, AocError>;
 
 #[derive(Debug, PartialEq)]
 pub enum Operation {
@@ -94,7 +91,10 @@ impl State {
             }
         }
         if verbose {
-            print!("- The dial is rotated {} to point at {}", instruction, self.num);
+            print!(
+                "- The dial is rotated {} to point at {}",
+                instruction, self.num
+            );
             if mode == Mode::CountZerosDuringRotation && zeros > 0 {
                 print!("; during this rotation, it points at 0 {} times", zeros);
             }
@@ -103,7 +103,12 @@ impl State {
         zeros
     }
 
-    pub fn apply_multiple(&mut self, instructions: Vec<Instruction>, mode: Mode, verbose: bool) -> u32 {
+    pub fn apply_multiple(
+        &mut self,
+        instructions: Vec<Instruction>,
+        mode: Mode,
+        verbose: bool,
+    ) -> u32 {
         let mut zeros_after = 0;
         let mut zeros_during = 0;
         for instruction in instructions {
@@ -112,9 +117,9 @@ impl State {
                 zeros_after += 1;
             }
         }
-        if mode == Mode::CountZerosDuringRotation { 
+        if mode == Mode::CountZerosDuringRotation {
             zeros_during + zeros_after
-        } else { 
+        } else {
             zeros_after
         }
     }
@@ -243,10 +248,14 @@ mod tests {
     #[test]
     fn test_apply_instruction() {
         let mut state = State::new();
-        state.apply(Instruction {
-            operation: Operation::Left,
-            argument: 68,
-        }, Mode::CountZerosAfterRotation, false);
+        state.apply(
+            Instruction {
+                operation: Operation::Left,
+                argument: 68,
+            },
+            Mode::CountZerosAfterRotation,
+            false,
+        );
         assert_eq!(state, State { num: 82 });
     }
 
@@ -261,10 +270,14 @@ mod tests {
     #[test]
     fn test_apply_instruction_count_during() {
         let mut state = State::new();
-        let zero_count = state.apply(Instruction {
-            operation: Operation::Left,
-            argument: 68,
-        }, Mode::CountZerosAfterRotation, false);
+        let zero_count = state.apply(
+            Instruction {
+                operation: Operation::Left,
+                argument: 68,
+            },
+            Mode::CountZerosAfterRotation,
+            false,
+        );
         assert_eq!(zero_count, 1);
     }
 
@@ -279,10 +292,14 @@ mod tests {
     #[test]
     fn test_big_rotation() {
         let mut state = State::new();
-        let zero_count = state.apply(Instruction {
-            operation: Operation::Right,
-            argument: 1000,
-        }, Mode::CountZerosAfterRotation, false);
+        let zero_count = state.apply(
+            Instruction {
+                operation: Operation::Right,
+                argument: 1000,
+            },
+            Mode::CountZerosAfterRotation,
+            false,
+        );
         assert_eq!(state.num, 50);
         assert_eq!(zero_count, 10);
     }
@@ -302,7 +319,14 @@ mod tests {
         let mode = Mode::CountZerosAfterRotation;
         for (op, arg, num, expected_num, expected_zeros) in cases {
             state.num = num;
-            let zero_count = state.apply(Instruction { operation: op, argument: arg }, mode, false);
+            let zero_count = state.apply(
+                Instruction {
+                    operation: op,
+                    argument: arg,
+                },
+                mode,
+                false,
+            );
             assert_eq!(state.num, expected_num);
             assert_eq!(zero_count, expected_zeros);
         }
