@@ -38,7 +38,7 @@ pub enum AocError {
 
 #[derive(clap::Parser, Debug, Clone)]
 pub struct Config {
-    #[clap(short, long, default_value = "data/input.txt", help = "Path to input file")]
+    #[clap(short, long, default_value = "data/day01/input.txt", help = "Path to input file")]
     pub input: String,
 
     #[clap(short, long, default_value = "after", help = "Mode: 'after' or 'during'")]
@@ -203,11 +203,11 @@ mod tests {
     use super::*;
 
     fn read_test_file() -> String {
-        read_file("data/test_input.txt").expect("Failed to read test input file")
+        read_file("data/day01/test_input.txt").expect("Failed to read test input file")
     }
 
     fn read_test_instructions() -> Vec<Instruction> {
-        read_instructions_file("data/test_input.txt").expect("Failed to read test input file")
+        read_instructions_file("data/day01/test_input.txt").expect("Failed to read test input file")
     }
 
     #[test]
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn test_parse_instructions() {
-        let instructions = read_instructions_file("data/test_input.txt").expect("Failed to read input file");
+        let instructions = read_test_instructions();
         assert_eq!(instructions.len(), 10);
     }
 
