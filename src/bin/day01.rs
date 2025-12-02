@@ -7,7 +7,6 @@ use nom::{
     IResult, Parser, branch::alt, bytes::complete::tag, character::complete::digit1,
     combinator::map_res, sequence::pair,
 };
-use thiserror::Error;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Mode {
