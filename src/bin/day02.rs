@@ -51,6 +51,46 @@ struct Config {
 
     #[clap(short, long, default_value = "two", help = "Mode: 'two' or 'multiple'")]
     pub mode: Mode,
+
+    #[clap(short, long, help = "Run benchmark")]
+    pub bench: bool,
+
+    #[clap(long, help = "Benchmark iterations", default_value = "1000")]
+    pub iterations: usize,
+}
+
+pub struct BenchmarkResult {
+    start_time: std::time::Instant,
+    end_time: std::time::Instant,
+    iterations: u32,
+}
+
+impl BenchmarkResult {
+    pub fn run<F>(iterations: u32, f: F) -> Self where F: Fn() {
+        let start_time = std::time::Instant::now();
+        for _ in 0..iterations {
+            f();
+        }
+        let end_time = std::time::Instant::now();
+        BenchmarkResult {
+            start_time,
+            end_time,
+            iterations
+        }
+    }
+
+    pub fn duration(&self) -> std::time::Duration {
+        self.end_time.duration_since(self.start_time)
+    }
+}
+
+impl fmt::Display for BenchmarkResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let duration = self.duration();
+        write!(f, "Duration: {:?}", duration)?;
+        write!(f, "Average:  {:?}", duration / self.iterations)?;
+        Ok(())
+    }
 }
 
 fn parse_id_range(s: &str) -> IResult<&str, IdRange> {
@@ -128,6 +168,17 @@ pub fn count_sum_invalid_ids_in_range(range: &IdRange, mode: Mode) -> (u64, u64)
     invalid_ids_in_range(range, mode).fold(acc, |(count, sum), id| (count + 1, sum + id))
 }
 
+pub fn calc_count_sum(ranges: &[IdRange], mode: Mode) -> (u64, u64) {
+    let (mut total_count, mut total_sum) = (0u64, 0u64);
+    for range in ranges {
+        let (count, sum) = count_sum_invalid_ids_in_range(&range, mode);
+        info!("- {} has {} invalid IDs", range, count);
+        total_count += count;
+        total_sum += sum;
+    }    
+    (total_count, total_sum)
+}
+
 fn main() {
     use clap::Parser;
     let config = Config::parse();
@@ -138,15 +189,17 @@ fn main() {
     
     let ranges = parse_input_file(&config.input).expect("Failed to parse input file");
     info!("Parsed {} ID ranges from input file {}", ranges.len(), config.input);
-    let (mut total_count, mut total_sum) = (0u64, 0u64);
-    for range in ranges {
-        let (count, sum) = count_sum_invalid_ids_in_range(&range, config.mode);
-        info!("- {} has {} invalid IDs", range, count);
-        total_count += count;
-        total_sum += sum;
-    }    
-    println!("Total invalid IDs: {}", total_count);
-    println!("Sum of invalid IDs: {}", total_sum);
+
+    if config.bench {
+        let bench_result = BenchmarkResult::run(config.iterations as u32, || {
+            let _ = calc_count_sum(&ranges[..], config.mode);
+        });
+        println!("Benchmark result over {} iterations:\n{}", config.iterations, bench_result);
+    } else {
+        let (total_count, total_sum) = calc_count_sum(&ranges[..], config.mode);   
+        println!("Total invalid IDs: {}", total_count);
+        println!("Sum of invalid IDs: {}", total_sum);
+    }
 }
 
 #[cfg(test)]
@@ -234,13 +287,7 @@ mod tests {
     fn test_count_sum_invalid_ids_in_test_input() {
         let ranges = parse_test_input_file();
         let expected = (8, 1227775554);
-        let (mut total_count, mut total_sum) = (0u64, 0u64);
-        for range in ranges {
-            let (count, sum) = count_sum_invalid_ids_in_range(&range, Mode::Two);
-            println!("- {} has {} invalid IDs", range, count);
-            total_count += count;
-            total_sum += sum;
-        }
+        let (total_count, total_sum) = calc_count_sum(&ranges[..], Mode::Two);
         assert_eq!((total_count, total_sum), expected);
     }
 
@@ -248,13 +295,7 @@ mod tests {
     fn test_coun_sum_invalid_ids_multiple_mode_in_test_input() {
         let ranges = parse_test_input_file();
         let expected = (13, 4174379265);
-        let (mut total_count, mut total_sum) = (0u64, 0u64);
-        for range in ranges {
-            let (count, sum) = count_sum_invalid_ids_in_range(&range, Mode::Multiple);
-            println!("- {} has {} invalid IDs", range, count);
-            total_count += count;
-            total_sum += sum;
-        }
+        let (total_count, total_sum) = calc_count_sum(&ranges[..], Mode::Multiple);
         assert_eq!((total_count, total_sum), expected);
     }
 }
