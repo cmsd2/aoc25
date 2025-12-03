@@ -31,12 +31,7 @@ pub struct Config {
     )]
     pub input: String,
 
-    #[clap(
-        short,
-        long,
-        default_value = "two",
-        help = "Mode: 'two' or 'twelve'"
-    )]
+    #[clap(short, long, default_value = "two", help = "Mode: 'two' or 'twelve'")]
     pub mode: Mode,
 
     #[command(flatten)]
@@ -44,13 +39,16 @@ pub struct Config {
 }
 
 fn max_char(s: &str) -> AocResult<(usize, char)> {
-    s.chars().enumerate().max_by(|(_, a), (_, b)| {
+    s.chars()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| {
             if a >= b {
                 Ordering::Greater
             } else {
                 Ordering::Less
             }
-        }).ok_or(AocError::ParseError(format!("max_char: {}", s)))
+        })
+        .ok_or(AocError::ParseError(format!("max_char: {}", s)))
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -59,7 +57,6 @@ pub struct BatteryLine {
 }
 
 impl BatteryLine {
-    
     fn largest_digit(s: &str, offset: usize, max_offset: usize) -> AocResult<(usize, u32)> {
         let mut max = max_char(&s[offset..max_offset])?;
         max.0 += offset;
@@ -95,14 +92,16 @@ impl fmt::Display for BatteryLine {
 
 fn read_input_file(path: &str) -> AocResult<Vec<BatteryLine>> {
     std::fs::read_to_string(path)
-    .map_err(|e| AocError::IoError(format!("Failed to read input file {}: {}", path, e)))?
+        .map_err(|e| AocError::IoError(format!("Failed to read input file {}: {}", path, e)))?
         .lines()
         .map(|line| parse_battery_line(line))
         .collect()
 }
 
 fn parse_battery_line(line: &str) -> AocResult<BatteryLine> {
-    Ok(BatteryLine { line: line.to_string() })
+    Ok(BatteryLine {
+        line: line.to_string(),
+    })
 }
 
 fn calc_total_jolt(lines: &Vec<BatteryLine>, mode: Mode) -> u64 {
@@ -112,9 +111,14 @@ fn calc_total_jolt(lines: &Vec<BatteryLine>, mode: Mode) -> u64 {
         Mode::Twelve => 12,
     };
     for line in lines {
-        let jolt = line.largest_number(digits).expect("Failed to compute largest jolt");
+        let jolt = line
+            .largest_number(digits)
+            .expect("Failed to compute largest jolt");
         total_jolt += jolt;
-        info!("- In {} you can make the largest jolt possible, {}", line, jolt);
+        info!(
+            "- In {} you can make the largest jolt possible, {}",
+            line, jolt
+        );
     }
     total_jolt
 }
@@ -144,7 +148,9 @@ mod tests {
 
     #[test]
     fn test_example() {
-        let line = BatteryLine { line: "123456".to_string() };
+        let line = BatteryLine {
+            line: "123456".to_string(),
+        };
         let jolt = line.largest_number(2).expect("largest number");
         assert_eq!(jolt, 56);
     }
