@@ -7,4 +7,7 @@ pub enum AocError {
 
     #[error("Nom error: {0}")]
     NomError(String),
+
+    #[error("IO error: {0}")]
+    IoError(String),
 }

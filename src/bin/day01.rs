@@ -1,7 +1,7 @@
-use std::fmt::{self};
-use std::io::{self};
 use aoc25::error::AocError;
 use aoc25::result::AocResult;
+use std::fmt::{self};
+use std::io::{self};
 
 use nom::{
     IResult, Parser, branch::alt, bytes::complete::tag, character::complete::digit1,

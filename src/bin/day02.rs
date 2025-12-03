@@ -1,12 +1,12 @@
 use std::fmt;
 
+use aoc25::error::AocError;
+use aoc25::result::AocResult;
 use log::{debug, info};
 use nom::sequence::terminated;
 use nom::{
     IResult, Parser, character::complete::digit1, combinator::map_res, multi::separated_list1,
 };
-use aoc25::error::AocError;
-use aoc25::result::AocResult;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct IdRange {
@@ -66,7 +66,10 @@ pub struct BenchmarkResult {
 }
 
 impl BenchmarkResult {
-    pub fn run<F>(iterations: u32, f: F) -> Self where F: Fn() {
+    pub fn run<F>(iterations: u32, f: F) -> Self
+    where
+        F: Fn(),
+    {
         let start_time = std::time::Instant::now();
         for _ in 0..iterations {
             f();
@@ -75,7 +78,7 @@ impl BenchmarkResult {
         BenchmarkResult {
             start_time,
             end_time,
-            iterations
+            iterations,
         }
     }
 
@@ -101,7 +104,10 @@ fn parse_id_range(s: &str) -> IResult<&str, IdRange> {
 }
 
 fn parse_id_range_sequence(input: &str) -> IResult<&str, Vec<IdRange>> {
-    let separator = terminated(nom::character::complete::char(','), nom::character::complete::multispace0);
+    let separator = terminated(
+        nom::character::complete::char(','),
+        nom::character::complete::multispace0,
+    );
     separated_list1(separator, parse_id_range).parse(input)
 }
 
@@ -111,9 +117,8 @@ fn read_input_file(path: &str) -> std::io::Result<String> {
 
 fn parse_input_file(path: &str) -> AocResult<Vec<IdRange>> {
     let content = read_input_file(path).expect("Failed to read input file");
-    let (_remainder, ranges) = parse_id_range_sequence(&content).map_err(|e| {
-        AocError::ParseError(format!("Failed to parse input file {}: {}", path, e))
-    })?;
+    let (_remainder, ranges) = parse_id_range_sequence(&content)
+        .map_err(|e| AocError::ParseError(format!("Failed to parse input file {}: {}", path, e)))?;
     Ok(ranges)
 }
 
@@ -124,7 +129,10 @@ pub fn id_is_valid(id: u64, mode: Mode) -> bool {
         Mode::Multiple => digits,
     };
     let mut valid = true;
-    debug!("Validating id {} with {} digits in mode {:?}", id, digits, mode);
+    debug!(
+        "Validating id {} with {} digits in mode {:?}",
+        id, digits, mode
+    );
     for freq in 2..=max_freq {
         debug!("Checking id {} for freq {}", id, freq);
         if digits % freq != 0 {
@@ -154,13 +162,12 @@ pub fn id_is_valid(id: u64, mode: Mode) -> bool {
             break;
         }
     }
-    
+
     return valid;
 }
 
 pub fn invalid_ids_in_range(range: &IdRange, mode: Mode) -> impl Iterator<Item = u64> {
-    (range.start..=range.end)
-        .filter(move |&id| !id_is_valid(id, mode))
+    (range.start..=range.end).filter(move |&id| !id_is_valid(id, mode))
 }
 
 pub fn count_sum_invalid_ids_in_range(range: &IdRange, mode: Mode) -> (u64, u64) {
@@ -175,28 +182,35 @@ pub fn calc_count_sum(ranges: &[IdRange], mode: Mode) -> (u64, u64) {
         info!("- {} has {} invalid IDs", range, count);
         total_count += count;
         total_sum += sum;
-    }    
+    }
     (total_count, total_sum)
 }
 
 fn main() {
     use clap::Parser;
     let config = Config::parse();
-    
+
     env_logger::Builder::new()
         .filter_level(config.verbosity.into())
         .init();
-    
+
     let ranges = parse_input_file(&config.input).expect("Failed to parse input file");
-    info!("Parsed {} ID ranges from input file {}", ranges.len(), config.input);
+    info!(
+        "Parsed {} ID ranges from input file {}",
+        ranges.len(),
+        config.input
+    );
 
     if config.bench {
         let bench_result = BenchmarkResult::run(config.iterations as u32, || {
             let _ = calc_count_sum(&ranges[..], config.mode);
         });
-        println!("Benchmark result over {} iterations:\n{}", config.iterations, bench_result);
+        println!(
+            "Benchmark result over {} iterations:\n{}",
+            config.iterations, bench_result
+        );
     } else {
-        let (total_count, total_sum) = calc_count_sum(&ranges[..], config.mode);   
+        let (total_count, total_sum) = calc_count_sum(&ranges[..], config.mode);
         println!("Total invalid IDs: {}", total_count);
         println!("Sum of invalid IDs: {}", total_sum);
     }
@@ -229,8 +243,20 @@ mod tests {
         let (_remainder, ranges) = parse_id_range_sequence(input).expect("parser");
         assert_eq!(ranges.len(), 3);
         assert_eq!(ranges[0], IdRange { start: 11, end: 22 });
-        assert_eq!(ranges[1], IdRange { start: 95, end: 115 });
-        assert_eq!(ranges[2], IdRange { start: 998, end: 1012 });
+        assert_eq!(
+            ranges[1],
+            IdRange {
+                start: 95,
+                end: 115
+            }
+        );
+        assert_eq!(
+            ranges[2],
+            IdRange {
+                start: 998,
+                end: 1012
+            }
+        );
     }
 
     #[test]
@@ -241,15 +267,14 @@ mod tests {
 
     #[test]
     fn test_id_is_valid() {
-        let fixtures = vec![
-            (55, false),
-            (6464, false),
-            (123123, false),
-            (101, true),
-        ];
+        let fixtures = vec![(55, false), (6464, false), (123123, false), (101, true)];
         for (id, expected) in fixtures {
             let result = id_is_valid(id, Mode::Two);
-            assert_eq!(result, expected, "id_is_valid({}) returned {}, expected {}", id, result, expected);
+            assert_eq!(
+                result, expected,
+                "id_is_valid({}) returned {}, expected {}",
+                id, result, expected
+            );
         }
     }
 
@@ -266,7 +291,11 @@ mod tests {
         ];
         for (id, expected) in fixtures {
             let result = id_is_valid(id, Mode::Multiple);
-            assert_eq!(result, expected, "id_is_valid({}) returned {}, expected {}", id, result, expected);
+            assert_eq!(
+                result, expected,
+                "id_is_valid({}) returned {}, expected {}",
+                id, result, expected
+            );
         }
     }
 
@@ -277,7 +306,10 @@ mod tests {
         assert_eq!(count, 2);
         assert_eq!(sum, 11 + 22);
 
-        let range = IdRange { start: 95, end: 115 };
+        let range = IdRange {
+            start: 95,
+            end: 115,
+        };
         let (count, sum) = count_sum_invalid_ids_in_range(&range, Mode::Two);
         assert_eq!(count, 1);
         assert_eq!(sum, 99);
