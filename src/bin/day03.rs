@@ -5,6 +5,22 @@ use aoc25::error::AocError;
 use aoc25::result::AocResult;
 use log::{debug, info};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Mode {
+    Two,
+    Twelve,
+}
+
+impl From<&str> for Mode {
+    fn from(s: &str) -> Self {
+        match s {
+            "two" => Mode::Two,
+            "twelve" => Mode::Twelve,
+            _ => Mode::Two,
+        }
+    }
+}
+
 #[derive(clap::Parser, Debug, Clone)]
 pub struct Config {
     #[clap(
@@ -14,6 +30,14 @@ pub struct Config {
         help = "Path to input file"
     )]
     pub input: String,
+
+    #[clap(
+        short,
+        long,
+        default_value = "two",
+        help = "Mode: 'two' or 'twelve'"
+    )]
+    pub mode: Mode,
 
     #[command(flatten)]
     verbosity: clap_verbosity_flag::Verbosity,
@@ -44,15 +68,22 @@ impl BatteryLine {
         Ok((max.0, num))
     }
 
-    pub fn largest_number(&self, digits: u32) -> AocResult<(u32, (usize, usize))> {
-        assert_eq!(digits, 2);
-        
-        let max_1 = Self::largest_digit(&self.line, 0, self.line.len() - 1)?;
-        debug!("digit 1: {} at {}", max_1.1, max_1.0);
-        let max_2 = Self::largest_digit(&self.line, max_1.0 + 1, self.line.len())?;
-        debug!("digit 2: {} at {}", max_2.1, max_2.0);
+    pub fn largest_number(&self, digits: u32) -> AocResult<u64> {
+        let mut num: u64 = 0;
+        let mut offset = 0;
+        let mut max_offset = self.line.len() - (digits as usize - 1);
 
-        Ok((max_1.1 * 10 + max_2.1, (max_1.0, max_2.0)))
+        for i in 0..digits {
+            debug!("Finding digit {}", i);
+
+            let digit = Self::largest_digit(&self.line, offset, max_offset)?;
+
+            num = num * 10 + digit.1 as u64;
+            offset = digit.0 + 1;
+            max_offset += 1;
+        }
+
+        Ok(num)
     }
 }
 
@@ -74,12 +105,16 @@ fn parse_battery_line(line: &str) -> AocResult<BatteryLine> {
     Ok(BatteryLine { line: line.to_string() })
 }
 
-fn calc_total_jolt(lines: &Vec<BatteryLine>) -> u32 {
+fn calc_total_jolt(lines: &Vec<BatteryLine>, mode: Mode) -> u64 {
     let mut total_jolt = 0;
+    let digits = match mode {
+        Mode::Two => 2,
+        Mode::Twelve => 12,
+    };
     for line in lines {
-        let (jolt, (idx1, idx2)) = line.largest_number(2).expect("Failed to compute largest jolt");
+        let jolt = line.largest_number(digits).expect("Failed to compute largest jolt");
         total_jolt += jolt;
-        info!("- In {} you can make the largest jolt possible, {} by turning on batteries {} and {}", line, jolt, idx1, idx2);
+        info!("- In {} you can make the largest jolt possible, {}", line, jolt);
     }
     total_jolt
 }
@@ -91,31 +126,54 @@ fn main() {
         .filter_level(config.verbosity.into())
         .init();
     let lines = read_input_file(&config.input).expect("Failed to read input file");
-    let total_jolt = calc_total_jolt(&lines);
+    let total_jolt = calc_total_jolt(&lines, config.mode);
     println!("Total jolt from all battery lines: {}", total_jolt);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn read_test_input() -> AocResult<Vec<BatteryLine>> {
+        read_input_file("data/day03/test_input.txt")
+    }
+
+    fn read_test_input2() -> AocResult<Vec<BatteryLine>> {
+        read_input_file("data/day03/test_input2.txt")
+    }
+
     #[test]
     fn test_example() {
         let line = BatteryLine { line: "123456".to_string() };
-        let (jolt, (_idx1, _idx2)) = line.largest_number(2).expect("largest number");
+        let jolt = line.largest_number(2).expect("largest number");
         assert_eq!(jolt, 56);
     }
 
     #[test]
     fn test_test_input() {
-        let batteries = read_input_file("data/day03/test_input.txt").expect("read test input");
-        let total_jolt = calc_total_jolt(&batteries);
+        let batteries = read_test_input().expect("read test input");
+        let total_jolt = calc_total_jolt(&batteries, Mode::Two);
         assert_eq!(total_jolt, 357);
     }
 
     #[test]
     fn test_test_input2() {
-        let batteries = read_input_file("data/day03/test_input2.txt").expect("read test input 2");
-        let total_jolt = calc_total_jolt(&batteries);
+        let batteries = read_test_input2().expect("read test input 2");
+        let total_jolt = calc_total_jolt(&batteries, Mode::Two);
         assert_eq!(total_jolt, 77 + 98 + 66 + 66);
+    }
+
+    #[test]
+    fn test_example_12() {
+        let batteries = read_test_input().expect("read test input");
+        let total_jolt = calc_total_jolt(&batteries, Mode::Twelve);
+        assert_eq!(total_jolt, 3121910778619);
+    }
+
+    #[test]
+    fn test_example_12_2() {
+        let batteries = read_test_input2().expect("read test input 2");
+        let total_jolt = calc_total_jolt(&batteries, Mode::Twelve);
+        assert_eq!(total_jolt, 3084441169181);
     }
 }
